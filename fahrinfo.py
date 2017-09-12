@@ -23,16 +23,18 @@ def search_request(von, nach, zeit=datetime.datetime.now()):
         `zeit` account
     '''
     zeit = zeit + datetime.timedelta(hours=1)
-    r = s.post(url + init(),
+    _init = init()
+    _init = _init.replace('dox?', 'dn?')
+    r = s.post(url + _init,
                data={
                    'REQ0HafasInitialSelection': '0',
                    'queryDisplayed': 'true',
-                   'REQ0JourneyStopsS0A': '1',
+                   'REQ0JourneyStopsS0A': von[2],
                    'REQ0JourneyStopsS0G': von[0],
                    'REQ0JourneyStopsS0ID': von[1],
                    'HWAI%3DJS%21js': 'yes',
                    'HWAI%3DJS%21ajax': 'yes',
-                   'REQ0JourneyStopsZ0A': '1',
+                   'REQ0JourneyStopsZ0A': nach[2],
                    'REQ0JourneyStopsZ0G': nach[0],
                    'REQ0JourneyStopsZ0ID': nach[1],
                    'REQ0JourneyDate': zeit.strftime('%d.%m.%y'),
@@ -56,6 +58,8 @@ def search_request(von, nach, zeit=datetime.datetime.now()):
                    'REQ0Total_KissRide_maxDist': 1000000,
                    'start': 'Suchen'
            })
+    print(_init)
+    print(r.content)
     return r
 
 
@@ -64,6 +68,12 @@ def search(von, nach, zeit=datetime.datetime.now()):
     '''
     r = search_request(von, nach, zeit=datetime.datetime.now())
     etree = lxml.html.fromstring(r.content)
+
+    for i in etree.xpath('.//a[starts-with(@id, "linkDtlC")]/@href'):
+        ri = s.get(url + i)
+        ei = lxml.html.fromstring(ri.content)
+        print(ei.cssselect('tr.tpDetails'))
+
     connections, infos = [], []
     for href in etree.xpath('//td[starts-with(@class,con)]/a/@href'):
         if href.startswith('/Fahrinfo/bin/query'):
@@ -121,7 +131,7 @@ def connection_infos(url):
         try:
             anh, anm = an[1], an[2]
             abh, abm = ab[1], ab[2]
-            print(f'{d["train"]} Ri: {d["direction"]} ab: {abh}:{abm} an: {anh}:{anm}')
+            print(f'{d["train"]}: {d["direction"]} ab: {abh}:{abm} an: {anh}:{anm}')
         except TypeError:
             m = re.search('(\d+) Min\.', an_ab)
             try:
