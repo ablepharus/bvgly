@@ -18,7 +18,10 @@ def init():
     return search_url
 
 
-def search(von, nach, zeit=datetime.datetime.now()):
+def search_request(von, nach, zeit=datetime.datetime.now()):
+    ''' send a search request for a connection from `von` to `nach` at
+        `zeit` account
+    '''
     zeit = zeit + datetime.timedelta(hours=1)
     r = s.post(url + init(),
                data={
@@ -53,7 +56,13 @@ def search(von, nach, zeit=datetime.datetime.now()):
                    'REQ0Total_KissRide_maxDist': 1000000,
                    'start': 'Suchen'
            })
+    return r
 
+
+def search(von, nach, zeit=datetime.datetime.now()):
+    ''' search and print connections
+    '''
+    r = search_request(von, nach, zeit=datetime.datetime.now())
     etree = lxml.html.fromstring(r.content)
     connections, infos = [], []
     for href in etree.xpath('//td[starts-with(@class,con)]/a/@href'):
@@ -62,50 +71,57 @@ def search(von, nach, zeit=datetime.datetime.now()):
         if href.startswith('/Fahrinfo/bin/query'):
             infos.append(href)
 
+    if len(connections) == 0:
+        print(f'no connections found: {r} {r.content.decode()}')
     for connection in connections:
+        # print_connection_infos(connection)
         connection_infos(connection)
 
 
 def connection_infos(url):
+    ''' get information of a specific connection, which may include
+        several steps
+    '''
+    d = dict()
     r = s.get(base_url + url)
     etree = lxml.html.fromstring(r.content)
 
     print('-' * 80)
     for part in etree.xpath('//p[starts-with(@class,"con")]'):
         text = part.xpath('normalize-space()')
-        print(text)
 
-        # Todo
-        continue
         a = [(a.xpath('./@href')[0],
               ''.join(list(a.xpath('./text()'))), a)
              for a in part.xpath('.//a')]
         for href, text, a in a:
+            # get whole text and clean it
             text = text.replace('\n', '')
-
             while text.find('  ') != -1:
                 text = text.replace('  ', ' ')
+
             if href.startswith('/Fahrinfo/bin/traininfo'):
-                print(f'{text}' + a.xpath('strong/text()')[0])
+                d['direction'], d['train'] = text, a.xpath('strong/text()')[0]
             elif href.find('content/standortplaene') != -1:
-                print('Found Lageplan')
+                d['lageplan'] = href
             elif href.startswith('/Fahrinfo/bin/help.bin/dox?tpl=streckenin'):
-                print('Found info')
+                d['info'] = href
             elif href.find('MapLocation') != -1:
-                print('Found BVG Falk - Map')
+                d['falkmap'] = href
             elif href.startswith('//fahrinfo.bvg.de/Fahrinfo/bin/stboard.bin'):
-                print('Found more links')
+                d['more'] = href
             elif text == 'Fußweg':
-                print('Found Fuẞweg')
+                print('walk: {href}')
             else:
                 print(f'"{text}" - {href}')
-
+        print(etree.cssselect('.station'))
         an_ab = ''.join(part.xpath('text()')).replace('\n', '')
         an, ab = re.search('an (\d+):(\d+)', an_ab), \
                  re.search('ab (\d+):(\d+)', an_ab)
+
         try:
             anh, anm = an[1], an[2]
             abh, abm = ab[1], ab[2]
+            print(f'{d["train"]} Ri: {d["direction"]} ab: {abh}:{abm} an: {anh}:{anm}')
         except TypeError:
             m = re.search('(\d+) Min\.', an_ab)
             try:
@@ -113,6 +129,17 @@ def connection_infos(url):
             except:
                 print(f'could not parse {an_ab}')
 
+
+def print_connection_infos(url):
+    '''
+    '''
+    r = s.get(base_url + url)
+    etree = lxml.html.fromstring(r.content)
+
+    print('-' * 80)
+    for part in etree.xpath('//p[starts-with(@class,"con")]'):
+        text = part.xpath('normalize-space()')
+        print(text)
 
 
 def search_station(name):
@@ -150,8 +177,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if len(sys.argv) > 2:
-        s1 = search_station(sys.argv[1])
-        s2 = search_station(sys.argv[2])
+        s1, s2 = tuple(map(search_station, sys.argv[1:3]))
 
     now = datetime.datetime.now()
     if len(sys.argv) == 4:
