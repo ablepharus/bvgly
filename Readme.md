@@ -6,10 +6,10 @@ to python, to the cli and maybe more.
 
 ## fahrinfo.bvg.de
 
-| https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/d[on]x | simple web interface |
-| https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/d[on]x | simple web interface english |
-| https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/do     | simple web interface served as text/vnd.wap.wml |
-| https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/dn     | not as simple web interface, tags include design info |
+https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/d[on]x  simple web interface |
+https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/d[on]x  simple web interface english |
+https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/do      simple web interface served as text/vnd.wap.wml |
+https://fahrinfo.bvg.de/Fahrinfo/bin/query.bin/dn      not as simple web interface, tags include design info |
 
 
 ## Data
